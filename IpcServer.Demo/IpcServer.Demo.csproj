@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0-windows</TargetFramework>
-    <UseWindowsForms>true</UseWindowsForms>
     <OutputType>Exe</OutputType>
     <RootNamespace>IpcServer</RootNamespace>
   </PropertyGroup>

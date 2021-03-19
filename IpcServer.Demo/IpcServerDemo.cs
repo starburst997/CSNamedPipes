@@ -9,7 +9,6 @@ namespace IpcLib.Demo
     {
         public static void Main(string[] args)
         {
-            // Run as a Windows console application
             var server = new IpcServerDemo();
             
             Thread.Sleep(5000);
