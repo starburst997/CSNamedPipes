@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net5.0-windows</TargetFramework>
     <OutputType>Exe</OutputType>
-    <RootNamespace>IpcClient</RootNamespace>
+    <RootNamespace>IpcLib.Demo</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

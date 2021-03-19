@@ -4,25 +4,10 @@ using System.IO.Pipes;
 using System.Text;
 using System.Threading;
 
-namespace IpcLib
+namespace IpcLib.Client
 {
-    // ReSharper disable once InconsistentNaming
-    public interface IpcClientCallback
-    {
-        void OnAsyncConnect(PipeStream pipe);
-        void OnAsyncDisconnect(PipeStream pipe);
-        void OnAsyncMessage(PipeStream pipe, byte[] data, int bytes);
-    }
-    
     public class IpcClient
-    {
-        private struct IpcPipeData
-        {
-            public PipeStream Pipe;
-            public object State;
-            public byte[] Data;
-        }
-        
+    {        
         private readonly string _name;
         private readonly int _timeout;
         private readonly IpcClientCallback _callback;
@@ -60,7 +45,7 @@ namespace IpcLib
             {
                 Pipe = _pipe, 
                 State = null, 
-                Data = new byte[IpcServer.ServerOutBufferSize]
+                Data = new byte[IpcLib.ServerOutBufferSize]
             };
             
             _callback.OnAsyncConnect(pd.Pipe);
@@ -121,7 +106,7 @@ namespace IpcLib
             try
             {
                 var output = Encoding.UTF8.GetBytes(message);
-                Debug.Assert(output.Length < IpcServer.ServerInBufferSize);
+                Debug.Assert(output.Length < IpcLib.ServerInBufferSize);
                 
                 _pipe.BeginWrite(output, 0, output.Length, OnAsyncWriteComplete, _pipe);
             }
@@ -145,32 +130,6 @@ namespace IpcLib
 
             _connected = false;
             _pipe.Close();
-        }
-    }
-
-    public class IpcClientPipe
-    {
-        private readonly NamedPipeClientStream _pipe;
-
-        public IpcClientPipe(string serverName, string pipename)
-        {
-            _pipe = new NamedPipeClientStream(
-                serverName,
-                pipename,
-                PipeDirection.InOut,
-                PipeOptions.Asynchronous | PipeOptions.WriteThrough
-            );
-        }
-
-        public PipeStream Connect(int timeout)
-        {
-            // NOTE: will throw on failure
-            _pipe.Connect(timeout);
-
-            // Must Connect before setting ReadMode
-            _pipe.ReadMode = PipeTransmissionMode.Message;
-
-            return _pipe;
         }
     }
 }

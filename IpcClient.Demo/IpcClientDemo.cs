@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text;
 using System.Threading;
+using IpcLib.Client;
 
 namespace IpcLib.Demo
 {

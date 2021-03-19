@@ -2,6 +2,7 @@
 using System.IO.Pipes;
 using System.Text;
 using System.Threading;
+using IpcLib.Server;
 
 namespace IpcLib.Demo
 {

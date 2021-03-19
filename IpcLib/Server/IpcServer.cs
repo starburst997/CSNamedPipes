@@ -5,27 +5,10 @@ using System.IO.Pipes;
 using System.Text;
 using System.Threading;
 
-namespace IpcLib
+namespace IpcLib.Server
 {
-    // ReSharper disable once InconsistentNaming
-    public interface IpcServerCallback
-    {
-        void OnAsyncConnect(PipeStream pipe, out object state);
-        void OnAsyncDisconnect(PipeStream pipe, object state);
-        void OnAsyncMessage(PipeStream pipe, byte[] data, int bytes, object state);
-    }
-
     public class IpcServer
-    {
-        private struct IpcPipeData
-        {
-            public PipeStream Pipe;
-            public object State;
-            public byte[] Data;
-        }
-        
-        public const int ServerInBufferSize = 4096;
-        public const int ServerOutBufferSize = 4096;
+    {   
         private readonly IpcServerCallback _callback;
         
         private readonly string _pipename;
@@ -90,8 +73,8 @@ namespace IpcLib
                 -1,
                 PipeTransmissionMode.Message,
                 PipeOptions.Asynchronous | PipeOptions.WriteThrough,
-                ServerInBufferSize,
-                ServerOutBufferSize
+                IpcLib.ServerInBufferSize,
+                IpcLib.ServerOutBufferSize
             );
 
             // Asynchronously accept a client connection
@@ -112,7 +95,7 @@ namespace IpcLib
                 {
                     Pipe = pipe,
                     State = null,
-                    Data = new byte[ServerInBufferSize]
+                    Data = new byte[IpcLib.ServerInBufferSize]
                 };
 
                 // Add connection to connection list
@@ -143,7 +126,7 @@ namespace IpcLib
             }
             catch (Exception)
             {
-                //Exception reason: NamedPipeServerStream.close() is called when stopped the server. This causes OnClientConnected to be called. It then tries to acces a closed pipe with pipe.EndWaitForConnection
+                //Exception reason: NamedPipeServerStream.close() is called when stopped the server. This causes OnClientConnected to be called. It then tries to access a closed pipe with pipe.EndWaitForConnection
             }
         }
 
@@ -196,7 +179,7 @@ namespace IpcLib
             lock (_pipes)
             {
                 var output = Encoding.UTF8.GetBytes(message);
-                Debug.Assert(output.Length < ServerInBufferSize);
+                Debug.Assert(output.Length < IpcLib.ServerInBufferSize);
                 
                 foreach (var pipe in _pipes)
                 {
