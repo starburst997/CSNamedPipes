@@ -3,6 +3,12 @@
   <PropertyGroup>
     <TargetFramework>net5.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>IpcClient</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IpcLib\IpcLib.csproj" />
+  </ItemGroup>
 
 </Project>

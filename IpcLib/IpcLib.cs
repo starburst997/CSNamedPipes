@@ -1,133 +1,131 @@
 ﻿using System;
-using System.IO.Pipes;
-using System.Threading;
-using System.Security.AccessControl;
-using System.Security.Principal;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO.Pipes;
+using System.Threading;
 
 // Ipc => Inter-process communications library
-
-namespace Coho.IpcLibrary {
-
+namespace IpcLib
+{
     // Interface for user code to receive notifications regarding pipe messages
-    public interface IpcCallback {
-        void OnAsyncConnect (PipeStream pipe, out Object state);
-        void OnAsyncDisconnect (PipeStream pipe, Object state);
-        void OnAsyncMessage (PipeStream pipe, Byte [] data, Int32 bytes, Object state);
+    // ReSharper disable once InconsistentNaming
+    public interface IpcCallback
+    {
+        void OnAsyncConnect(PipeStream pipe, out object state);
+        void OnAsyncDisconnect(PipeStream pipe, object state);
+        void OnAsyncMessage(PipeStream pipe, byte[] data, int bytes, object state);
     }
 
     // Internal data associated with pipes
-    struct IpcPipeData {
-        public PipeStream  pipe;
-        public Object      state;
-        public Byte []     data;
-    };
+    internal struct IpcPipeData
+    {
+        public PipeStream Pipe;
+        public object State;
+        public byte[] Data;
+    }
 
-    public class IpcServer {
+    public class IpcServer
+    {
         // TODO: parameterize so they can be passed by application
-        public const Int32 SERVER_IN_BUFFER_SIZE = 4096;
-        public const Int32 SERVER_OUT_BUFFER_SIZE = 4096;
+        public const int ServerInBufferSize = 4096;
+        public const int ServerOutBufferSize = 4096;
+        private readonly IpcCallback _callback;
 
-        private readonly String m_pipename;
-        private readonly IpcCallback m_callback;
-        private readonly PipeSecurity m_ps;
+        private readonly string _pipename;
 
-        private bool m_running;
-        private Dictionary<PipeStream, IpcPipeData> m_pipes = new Dictionary<PipeStream, IpcPipeData>();
+        private IAsyncResult _awaitingClientConnection;
+        private readonly Dictionary<PipeStream, IpcPipeData> _pipes = new();
 
-        private IAsyncResult AwaitingClientConnection;
+        private bool _running;
 
-        public IpcServer (
-            String      pipename,
-            IpcCallback callback,
-            int         instances
-        ) {
-            Debug.Assert(!m_running);
-            m_running = true;
+        public IpcServer(string pipename, IpcCallback callback, int instances)
+        {
+            Debug.Assert(!_running);
+            _running = true;
 
             // Save parameters for next new pipe
-            m_pipename = pipename;
-            m_callback = callback;
+            _pipename = pipename;
+            _callback = callback;
 
-            // Provide full access to the current user so more pipe instances can be created
-            m_ps = new PipeSecurity();
-            m_ps.AddAccessRule(
-                new PipeAccessRule(WindowsIdentity.GetCurrent().User, PipeAccessRights.FullControl, AccessControlType.Allow)
-            );
-            m_ps.AddAccessRule(
-                new PipeAccessRule(
-                    new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null), PipeAccessRights.ReadWrite, AccessControlType.Allow
-                )
-            );
- 
             // Start accepting connections
-            for (int i = 0; i < instances; ++i)
+            for (var i = 0; i < instances; ++i)
                 IpcServerPipeCreate();
         }
 
-        public void IpcServerStop () {
+        public void IpcServerStop()
+        {
             // Close all pipes asynchronously
-            lock(m_pipes) {
-                m_running = false;
-                foreach(var pipe in m_pipes.Keys)
+            lock (_pipes)
+            {
+                _running = false;
+                foreach (var pipe in _pipes.Keys)
                     pipe.Close();
             }
 
             // Wait for all pipes to close
-            for (;;) {
+            for (;;)
+            {
                 int count;
-                lock(m_pipes) {
-                    count = m_pipes.Count;
+                lock (_pipes)
+                {
+                    count = _pipes.Count;
                 }
+
                 if (count == 0)
                     break;
+
                 Thread.Sleep(5);
             }
 
-            if(!AwaitingClientConnection.IsCompleted)
-                ((NamedPipeServerStream)AwaitingClientConnection.AsyncState).Close();
+            if (!_awaitingClientConnection.IsCompleted)
+            {
+                ((NamedPipeServerStream) _awaitingClientConnection.AsyncState)?.Close();
                 //((NamedPipeServerStream)AwaitingClientConnection.AsyncState).EndWaitForConnection(AwaitingClientConnection); THIS WILL WAIT FOREVER. Don't use
+            }
         }
 
-        private void IpcServerPipeCreate () {
+        private void IpcServerPipeCreate()
+        {
             // Create message-mode pipe to simplify message transition
             // Assume all messages will be smaller than the pipe buffer sizes
-            NamedPipeServerStream pipe = new NamedPipeServerStream(
-                m_pipename,
+            var pipe = new NamedPipeServerStream(
+                _pipename,
                 PipeDirection.InOut,
-                -1,     // maximum instances
+                -1,
                 PipeTransmissionMode.Message,
                 PipeOptions.Asynchronous | PipeOptions.WriteThrough,
-                SERVER_IN_BUFFER_SIZE,
-                SERVER_OUT_BUFFER_SIZE,
-                m_ps
+                ServerInBufferSize,
+                ServerOutBufferSize
             );
 
             // Asynchronously accept a client connection
-            AwaitingClientConnection = pipe.BeginWaitForConnection(OnClientConnected, pipe);
+            _awaitingClientConnection = pipe.BeginWaitForConnection(OnClientConnected, pipe);
         }
 
-        private void OnClientConnected(IAsyncResult result) {
+        private void OnClientConnected(IAsyncResult result)
+        {
             try
             {
                 // Complete the client connection
-                NamedPipeServerStream pipe = (NamedPipeServerStream)result.AsyncState;
+                var pipe = (NamedPipeServerStream) result.AsyncState;
+                if (pipe == null) return;
                 pipe.EndWaitForConnection(result);
 
                 // Create client pipe structure
-                IpcPipeData pd = new IpcPipeData();
-                pd.pipe = pipe;
-                pd.state = null;
-                pd.data = new Byte[SERVER_IN_BUFFER_SIZE];
+                var pd = new IpcPipeData
+                {
+                    Pipe = pipe, 
+                    State = null, 
+                    Data = new byte[ServerInBufferSize]
+                };
 
                 // Add connection to connection list
                 bool running;
-                lock (m_pipes)
+                lock (_pipes)
                 {
-                    running = m_running;
+                    running = _running;
                     if (running)
-                        m_pipes.Add(pd.pipe, pd);
+                        _pipes.Add(pd.Pipe, pd);
                 }
 
                 // If server is still running
@@ -137,7 +135,7 @@ namespace Coho.IpcLibrary {
                     IpcServerPipeCreate();
 
                     // Alert server that client connection exists
-                    m_callback.OnAsyncConnect(pipe, out pd.state);
+                    _callback.OnAsyncConnect(pipe, out pd.State);
 
                     // Accept messages
                     BeginRead(pd);
@@ -146,52 +144,62 @@ namespace Coho.IpcLibrary {
                 {
                     pipe.Close();
                 }
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 //Exception reason: NamedPipeServerStream.close() is called when stopped the server. This causes OnClientConnected to be called. It then tries to acces a closed pipe with pipe.EndWaitForConnection
             }
         }
 
-        private void BeginRead (IpcPipeData pd) {
+        private void BeginRead(IpcPipeData pd)
+        {
             // Asynchronously read a request from the client
-            bool isConnected = pd.pipe.IsConnected;
-            if (isConnected) {
-                try {
-                    pd.pipe.BeginRead(pd.data, 0, pd.data.Length, OnAsyncMessage, pd);
+            var isConnected = pd.Pipe.IsConnected;
+            if (isConnected)
+            {   
+                try
+                {
+                    pd.Pipe.BeginRead(pd.Data, 0, pd.Data.Length, OnAsyncMessage, pd);
                 }
-                catch (Exception) {
+                catch (Exception)
+                {
                     isConnected = false;
                 }
             }
 
-            if (!isConnected) {
-                pd.pipe.Close();
-                m_callback.OnAsyncDisconnect(pd.pipe, pd.state);
-                lock(m_pipes) {
-                    bool removed = m_pipes.Remove(pd.pipe);
-                    Debug.Assert(removed);
-                }
+            if (isConnected) return;
+            
+            pd.Pipe.Close();
+            _callback.OnAsyncDisconnect(pd.Pipe, pd.State);
+                
+            lock (_pipes)
+            {
+                var removed = _pipes.Remove(pd.Pipe);
+                Debug.Assert(removed);
             }
-
         }
 
-        private void OnAsyncMessage(IAsyncResult result) {
+        private void OnAsyncMessage(IAsyncResult result)
+        {
             // Async read from client completed
-            IpcPipeData pd = (IpcPipeData) result.AsyncState;
-            Int32 bytesRead = pd.pipe.EndRead(result);
+            if (result.AsyncState == null) return;
+            
+            var pd = (IpcPipeData) result.AsyncState;
+            var bytesRead = pd.Pipe.EndRead(result);
             if (bytesRead != 0)
-               m_callback.OnAsyncMessage(pd.pipe, pd.data, bytesRead, pd.state);
+                _callback.OnAsyncMessage(pd.Pipe, pd.Data, bytesRead, pd.State);
+            
             BeginRead(pd);
         }
-
     }
 
+    public class IpcClientPipe
+    {
+        private readonly NamedPipeClientStream _pipe;
 
-    public class IpcClientPipe {
-        private readonly NamedPipeClientStream m_pipe;
-
-        public IpcClientPipe(String serverName, String pipename) {
-            m_pipe = new NamedPipeClientStream(
+        public IpcClientPipe(string serverName, string pipename)
+        {
+            _pipe = new NamedPipeClientStream(
                 serverName,
                 pipename,
                 PipeDirection.InOut,
@@ -199,15 +207,22 @@ namespace Coho.IpcLibrary {
             );
         }
 
-        public PipeStream Connect (Int32 timeout) {
-            // NOTE: will throw on failure
-            m_pipe.Connect(timeout);
+        public PipeStream Connect(int timeout)
+        {
+            try
+            {
+                // NOTE: will throw on failure
+                _pipe.Connect(timeout);
 
-            // Must Connect before setting ReadMode
-            m_pipe.ReadMode = PipeTransmissionMode.Message;
+                // Must Connect before setting ReadMode
+                _pipe.ReadMode = PipeTransmissionMode.Message;
 
-            return m_pipe;
+                return _pipe;
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
         }
     }
-
 }
