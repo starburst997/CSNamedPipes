@@ -1,6 +1,4 @@
 ﻿using System;
-using System.IO.Pipes;
-using System.Text;
 using System.Threading;
 using IpcLib.Server;
 
@@ -10,7 +8,13 @@ namespace IpcLib.Demo
     {
         public static void Main(string[] args)
         {
-            var server = new IpcServerDemo();
+            var server = new IpcServer("ExamplePipeName");
+            
+            server.Connected += id => Console.WriteLine($"Connected {id}");
+            server.Disconnected += id => Console.WriteLine($"Disconnected ({id})");
+            server.Message += (id, message) => Console.WriteLine($"Message Received ({id}): {message}");
+            
+            server.Connect();
             
             Thread.Sleep(5000);
 
@@ -37,50 +41,6 @@ namespace IpcLib.Demo
             server.Stop();
             
             Console.WriteLine("End");
-        }
-    }
-
-    public class IpcServerDemo : IpcServerCallback
-    {
-        private readonly IpcServer _server;
-        
-        private int _count;
-
-        public IpcServerDemo()
-        {
-            _server = new IpcServer("ExamplePipeName", this, 1);
-        }
-        
-        public void OnAsyncConnect(PipeStream pipe, out object state)
-        {
-            var count = Interlocked.Increment(ref _count);
-            state = count;
-            
-            Console.WriteLine($"Connected: {count}");
-        }
-
-        public void OnAsyncDisconnect(PipeStream pipe, object state)
-        {
-            Console.WriteLine($"Disconnected: {(int) state}");
-        }
-
-        public void OnAsyncMessage(PipeStream pipe, byte[] data, int bytes, object state)
-        {
-            var message = Encoding.UTF8.GetString(data, 0, bytes);
-            
-            Console.WriteLine($"Message Received: {message}");
-        }
-
-        public void Stop()
-        {
-            _server.IpcServerStop();
-        }
-        
-        public void Send(string message)
-        {
-            _server.Send(message);
-            
-            Console.WriteLine($"Message Sent: {message}");
         }
     }
 }

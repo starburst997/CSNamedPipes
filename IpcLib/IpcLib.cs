@@ -4,6 +4,7 @@ namespace IpcLib
 {
     internal struct IpcPipeData
     {
+        public int Id;
         public PipeStream Pipe;
         public object State;
         public byte[] Data;

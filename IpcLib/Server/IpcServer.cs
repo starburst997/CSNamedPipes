@@ -8,9 +8,7 @@ using System.Threading;
 namespace IpcLib.Server
 {
     public class IpcServer
-    {   
-        private readonly IpcServerCallback _callback;
-        
+    {
         private readonly string _pipename;
 
         private IAsyncResult _awaitingClientConnection;
@@ -18,20 +16,31 @@ namespace IpcLib.Server
 
         private bool _running;
 
-        public IpcServer(string pipename, IpcServerCallback callback, int instances)
+        private int _id;
+        private readonly int _instances;
+        
+        // Events
+        public Action<int, string> Message;
+        public Action<int> Connected;
+        public Action<int> Disconnected;
+
+        public IpcServer(string pipename, int instances = 1)
         {
             _running = true;
 
             // Save parameters for next new pipe
             _pipename = pipename;
-            _callback = callback;
-
-            // Start accepting connections
-            for (var i = 0; i < instances; ++i)
-                IpcServerPipeCreate();
+            _instances = instances;
         }
 
-        public void IpcServerStop()
+        public void Connect()
+        {
+            // Start accepting connections
+            for (var i = 0; i < _instances; ++i)
+                IpcServerPipeCreate();
+        }
+        
+        public void Stop()
         {
             // Close all pipes asynchronously
             lock (_pipes)
@@ -93,6 +102,7 @@ namespace IpcLib.Server
                 // Create client pipe structure
                 var pd = new IpcPipeData
                 {
+                    Id = ++_id,
                     Pipe = pipe,
                     State = null,
                     Data = new byte[IpcLib.ServerInBufferSize]
@@ -113,8 +123,7 @@ namespace IpcLib.Server
                     // Prepare for next connection
                     IpcServerPipeCreate();
 
-                    // Alert server that client connection exists
-                    _callback.OnAsyncConnect(pipe, out pd.State);
+                    Connected?.Invoke(pd.Id);
 
                     // Accept messages
                     BeginRead(pd);
@@ -149,7 +158,8 @@ namespace IpcLib.Server
             if (isConnected) return;
             
             pd.Pipe.Close();
-            _callback.OnAsyncDisconnect(pd.Pipe, pd.State);
+            
+            Disconnected?.Invoke(pd.Id);
                 
             lock (_pipes)
             {
@@ -166,7 +176,10 @@ namespace IpcLib.Server
             var pd = (IpcPipeData) result.AsyncState;
             var bytesRead = pd.Pipe.EndRead(result);
             if (bytesRead != 0)
-                _callback.OnAsyncMessage(pd.Pipe, pd.Data, bytesRead, pd.State);
+            {
+                var message = Encoding.UTF8.GetString(pd.Data, 0, bytesRead);
+                Message?.Invoke(pd.Id, message);
+            }
             
             BeginRead(pd);
         }

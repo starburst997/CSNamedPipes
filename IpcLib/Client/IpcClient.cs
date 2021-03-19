@@ -10,7 +10,6 @@ namespace IpcLib.Client
     {        
         private readonly string _name;
         private readonly int _timeout;
-        private readonly IpcClientCallback _callback;
         
         private IpcClientPipe _client;
         private PipeStream _pipe;
@@ -18,10 +17,14 @@ namespace IpcLib.Client
 
         private bool _connected;
         
-        public IpcClient(string pipename, IpcClientCallback callback, int timeout = 10)
+        // Events
+        public Action<string> Message;
+        public Action Connected;
+        public Action Disconnected;
+        
+        public IpcClient(string pipename, int timeout = 10)
         {
             _name = pipename;
-            _callback = callback;
             _timeout = timeout;
         }
 
@@ -48,14 +51,14 @@ namespace IpcLib.Client
                 Data = new byte[IpcLib.ServerOutBufferSize]
             };
             
-            _callback.OnAsyncConnect(pd.Pipe);
+            Connected?.Invoke();
             
             // Accept messages
             BeginRead(pd);
         }
 
         // Not sure if thread is absolutely necessary here, will need more tests
-        public void ConnectAsync()
+        private void ConnectAsync()
         {
             _thread = new Thread(Connect);
             _thread.Start();
@@ -82,7 +85,8 @@ namespace IpcLib.Client
             _connected = false;
             
             pd.Pipe.Close();
-            _callback.OnAsyncDisconnect(pd.Pipe);
+            
+            Disconnected?.Invoke();
         }
         
         private void OnAsyncMessage(IAsyncResult result)
@@ -93,7 +97,10 @@ namespace IpcLib.Client
             var pd = (IpcPipeData) result.AsyncState;
             var bytesRead = pd.Pipe.EndRead(result);
             if (bytesRead != 0)
-                _callback.OnAsyncMessage(pd.Pipe, pd.Data, bytesRead);
+            {
+                var message = Encoding.UTF8.GetString(pd.Data, 0, bytesRead);
+                Message?.Invoke(message);
+            }
             
             // Loop back
             BeginRead(pd);
