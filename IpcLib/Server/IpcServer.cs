@@ -12,7 +12,7 @@ namespace IpcLib.Server
         private readonly string _pipename;
 
         private IAsyncResult _awaitingClientConnection;
-        private readonly Dictionary<PipeStream, IpcPipeData> _pipes = new();
+        private readonly Dictionary<PipeStream, IpcPipeData> _pipes = new Dictionary<PipeStream, IpcPipeData>();
 
         private bool _running;
 
