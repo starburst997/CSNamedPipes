@@ -8,7 +8,7 @@ A fork of [Patrick Wyatt](https://www.codeofhonor.com/blog/) - [CSNamedPipes](ht
 
 Both the Client and Server will wait for messages and can send message to each other asynchronously until `Stop()` is called.
 
-Not sure if I would've been better with Socket instead, I failed using `WM_COPYDATA` at first and stumbled upon this which seems pretty lightweight (I only need to send a few messages between a Unity App and a Windows App).
+Not sure if I would've been better with Socket instead, I failed using `WM_COPYDATA` at first and stumbled upon this which seems pretty lightweight (I only need to send a few messages between a Unity App and a Windows App for [Notessimo](https://notessimo.net)).
 
 ## Server
 
