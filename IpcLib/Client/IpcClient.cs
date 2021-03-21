@@ -58,6 +58,7 @@ namespace IpcLib.Client
         }
 
         // Not sure if thread is absolutely necessary here, will need more tests
+        // ReSharper disable once UnusedMember.Local
         private void ConnectAsync()
         {
             _thread = new Thread(Connect);

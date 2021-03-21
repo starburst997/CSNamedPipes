@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Pipes;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
@@ -80,7 +81,9 @@ namespace IpcLib.Server
                 _pipename,
                 PipeDirection.InOut,
                 -1,
-                PipeTransmissionMode.Message,
+                RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? 
+                    PipeTransmissionMode.Message : 
+                    PipeTransmissionMode.Byte,
                 PipeOptions.Asynchronous | PipeOptions.WriteThrough,
                 IpcLib.ServerInBufferSize,
                 IpcLib.ServerOutBufferSize

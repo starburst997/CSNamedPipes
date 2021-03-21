@@ -1,4 +1,5 @@
 ﻿using System.IO.Pipes;
+using System.Runtime.InteropServices;
 
 namespace IpcLib.Client
 {
@@ -22,7 +23,9 @@ namespace IpcLib.Client
             _pipe.Connect(timeout);
 
             // Must Connect before setting ReadMode
-            _pipe.ReadMode = PipeTransmissionMode.Message;
+            _pipe.ReadMode = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? 
+                PipeTransmissionMode.Message : 
+                PipeTransmissionMode.Byte;
 
             return _pipe;
         }
