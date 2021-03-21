@@ -166,6 +166,7 @@ namespace IpcLib.Server
                 
             lock (_pipes)
             {
+                // ReSharper disable once RedundantAssignment
                 var removed = _pipes.Remove(pd.Pipe);
                 Debug.Assert(removed);
             }
