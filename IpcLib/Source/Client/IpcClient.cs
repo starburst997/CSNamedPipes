@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO.Pipes;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
@@ -107,7 +108,7 @@ namespace IpcLib.Client
             BeginRead(pd);
         }
 
-        public bool Send(string message)
+        public bool Send(string message, bool flush = false, bool wait = false)
         {
             if (!_connected) return false;
             
@@ -117,6 +118,10 @@ namespace IpcLib.Client
                 Debug.Assert(output.Length < IpcLib.ServerInBufferSize);
                 
                 _pipe.BeginWrite(output, 0, output.Length, OnAsyncWriteComplete, _pipe);
+
+                if (flush) _pipe.Flush();
+                if (wait && RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) 
+                    _pipe.WaitForPipeDrain();
             }
             catch (Exception)
             {
@@ -125,7 +130,7 @@ namespace IpcLib.Client
 
             return true;
         }
-        
+
         private void OnAsyncWriteComplete(IAsyncResult result)
         {
             var pipe = (PipeStream) result.AsyncState;
