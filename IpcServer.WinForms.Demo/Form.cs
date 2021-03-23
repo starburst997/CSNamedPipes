@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Windows.Forms;
 
 namespace IpcServerWinFormsDemo
 {
@@ -44,6 +46,7 @@ namespace IpcServerWinFormsDemo
         private void ConnectedAsync(int id)
         {
             Invoke(_connected, id);
+            _server.Send("ready");
         }
         
         private void Log(string text)
