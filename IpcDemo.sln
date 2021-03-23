@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IpcServer.Demo", "IpcServer
 		{67D434CF-4262-488D-AC19-FDABF9383F9C} = {67D434CF-4262-488D-AC19-FDABF9383F9C}
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IpcClient.WinForms.Demo", "IpcClient.WinForms.Demo\IpcClient.WinForms.Demo.csproj", "{4707C891-835D-4A46-A7FD-1FA317DBD25B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IpcServer.WinForms.Demo", "IpcServer.WinForms.Demo\IpcServer.WinForms.Demo.csproj", "{B3B32195-FBA5-4AA8-8BC0-587CB4F339DF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,6 +35,14 @@ Global
 		{EF74C881-A1D7-4962-A763-6FE3A23C18B4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EF74C881-A1D7-4962-A763-6FE3A23C18B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EF74C881-A1D7-4962-A763-6FE3A23C18B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4707C891-835D-4A46-A7FD-1FA317DBD25B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4707C891-835D-4A46-A7FD-1FA317DBD25B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4707C891-835D-4A46-A7FD-1FA317DBD25B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4707C891-835D-4A46-A7FD-1FA317DBD25B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3B32195-FBA5-4AA8-8BC0-587CB4F339DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3B32195-FBA5-4AA8-8BC0-587CB4F339DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3B32195-FBA5-4AA8-8BC0-587CB4F339DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3B32195-FBA5-4AA8-8BC0-587CB4F339DF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
